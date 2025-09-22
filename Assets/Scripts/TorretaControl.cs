@@ -1,68 +1,63 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // << importante: Input System
+using UnityEngine.InputSystem; // Nuevo Input System
 
 public class TorretaControl : MonoBehaviour
 {
     [Header("Referencias")]
-    public Transform pivotBase;       // Empty que rota en Y (si está vacío, se usa el objeto donde está el script)
-    public Transform pivotSuperior;   // Empty que rota en Z (elevación)
-    public Transform spawnPoint;      // punto de salida proyectiles (opcional)
+    public Transform pivotBase;       // Empty que rota en Y (yaw)
+    public Transform pivotSuperior;   // Empty que rota en X (pitch)
+    public Transform spawnPoint;      // punto de salida proyectiles
 
     [Header("Sensibilidad (grados por píxel)")]
-    public float sensibilidadX = 0.15f;
-    public float sensibilidadY = 0.15f;
+    public float sensibilidadX = 0.15f; // horizontal
+    public float sensibilidadY = 0.15f; // vertical
 
-    [Header("Restricciones (grados, eje Z del pivotSuperior)")]
-    public float minAnguloZ = -20f;
-    public float maxAnguloZ = 45f;
+    [Header("Restricciones (grados, eje X del pivotSuperior)")]
+    public float minAnguloX = -20f; // cañón baja
+    public float maxAnguloX = 45f;  // cañón sube
 
     [Header("Opciones")]
-    public bool requiereBotonDerechoParaRotar = false; // si true, rota solo mientras mantienes botón derecho
+    public bool requiereBotonDerechoParaRotar = false;
 
-    // valores acumulados (en rango -180..180)
+    // acumuladores
     private float rotY;
-    private float rotZ;
+    private float rotX;
 
     void Start()
     {
         if (pivotBase == null) pivotBase = transform;
         if (pivotSuperior == null) Debug.LogWarning("pivotSuperior no asignado en TorretaControl.");
 
-        // Inicializar acumuladores con las rotaciones actuales (normalizadas a -180..180)
-        rotY = pivotBase.localEulerAngles.y;
-        rotZ = pivotSuperior.localEulerAngles.z;
+        rotY = NormalizeAngle(pivotBase.localEulerAngles.y);
+        rotX = NormalizeAngle(pivotSuperior.localEulerAngles.x);
     }
 
     void Update()
     {
-        // Protección: si no hay ratón no hacemos nada
         if (Mouse.current == null) return;
-
-        // si hemos requerido botón derecho para rotar
         if (requiereBotonDerechoParaRotar && !Mouse.current.rightButton.isPressed) return;
 
-        // delta de ratón (píxeles desde la última frame)
         Vector2 delta = Mouse.current.delta.ReadValue();
 
-        // Aplicar sensibilidad (grados por pixel)
+        // yaw (horizontal, Y)
         rotY += delta.x * sensibilidadX;
-        rotZ -= delta.y * sensibilidadY; // restamos para que mover el ratón hacia arriba suba la torreta
 
-        // Limitamos la elevación
-        rotZ = Mathf.Clamp(rotZ, minAnguloZ, maxAnguloZ);
+        // pitch (vertical, X)
+        rotX -= delta.y * sensibilidadY;
+        rotX = Mathf.Clamp(rotX, minAnguloX, maxAnguloX);
 
-        // Aplicar las rotaciones manteniendo los otros ejes como estaban
+        // aplicar yaw a pivotBase
         Vector3 baseAngles = pivotBase.localEulerAngles;
         pivotBase.localEulerAngles = new Vector3(baseAngles.x, rotY, baseAngles.z);
 
+        // aplicar pitch a pivotSuperior
         if (pivotSuperior != null)
         {
             Vector3 supAngles = pivotSuperior.localEulerAngles;
-            pivotSuperior.localEulerAngles = new Vector3(supAngles.x, supAngles.y, rotZ);
+            pivotSuperior.localEulerAngles = new Vector3(rotX, supAngles.y, supAngles.z);
         }
     }
 
-    // Normaliza un ángulo de 0..360 a -180..180
     private float NormalizeAngle(float angle)
     {
         return Mathf.Repeat(angle + 180f, 360f) - 180f;
