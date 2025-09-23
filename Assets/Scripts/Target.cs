@@ -2,47 +2,29 @@ using UnityEngine;
 
 public class Target : MonoBehaviour
 {
-    [Header("Referencias")]
-    [SerializeField] private GameObject wholeTarget;   // El modelo completo
-    [SerializeField] private GameObject brokenPrefab;  // Prefab del target roto
+    [Header("Target Settings")]
+    public bool isDestructible = true; // Si se destruye o no
+    public int points = 100; // Puntos a sumar o restar
+    public GameObject brokenPrefab; // Solo si es destructible
+    public GameObject wholeTarget;
 
-    [Header("Respawn")]
-    [SerializeField] private float respawnTime = 3f;
-
-    private GameObject brokenInstance;
     private bool isBroken = false;
-    private float timer = 0f;
-
-    private void Update()
-    {
-        if (isBroken)
-        {
-            timer += Time.deltaTime;
-
-            if (timer >= respawnTime)
-            {
-                // Destruir el target roto
-                if (brokenInstance != null)
-                {
-                    Destroy(brokenInstance);
-                }
-
-                // Reactivar el modelo completo
-                wholeTarget.SetActive(true);
-
-                // Resetear estado
-                isBroken = false;
-                timer = 0f;
-            }
-        }
-    }
+    private GameObject brokenInstance;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Projectile")) // Solo reaccionar a las balas
+        if (other.CompareTag("Projectile"))
         {
-            Break();
-            Destroy(other.gameObject); // Destruir la bala al impactar
+            if (isDestructible)
+            {
+                Break();
+            }
+            else
+            {
+                ScoreManager.Instance.AddScore(points); // negativo en obstáculo
+            }
+
+            Destroy(other.gameObject); // destruir la bala
         }
     }
 
@@ -53,10 +35,23 @@ public class Target : MonoBehaviour
         // Desactivar el target completo
         wholeTarget.SetActive(false);
 
-        // Instanciar el target roto en la misma posición y rotación
+        // Instanciar el target roto
         brokenInstance = Instantiate(brokenPrefab, transform.position, transform.rotation);
+
+        // Sumar puntuación
+        ScoreManager.Instance.AddScore(points);
 
         // Marcar como roto
         isBroken = true;
+
+        // Reactivar después de 3s
+        Invoke(nameof(ResetTarget), 3f);
+    }
+
+    private void ResetTarget()
+    {
+        if (brokenInstance != null) Destroy(brokenInstance);
+        wholeTarget.SetActive(true);
+        isBroken = false;
     }
 }
