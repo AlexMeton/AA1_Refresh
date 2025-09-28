@@ -67,9 +67,6 @@ public class TorretaShooting : MonoBehaviour
         // Opción A: velocidad directa (clara y determinista)
         rb.linearVelocity = spawnPoint.forward * launchSpeed;
 
-        // Opción B (equivalente al enunciado que sugiere fuerza): 
-        // rb.AddForce(spawnPoint.forward * launchSpeed, ForceMode.VelocityChange);
-
-        Debug.Log("🔥 Proyectil disparado!");
+              Debug.Log("🔥 Proyectil disparado!");
     }
 }
